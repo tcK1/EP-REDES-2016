@@ -1,3 +1,10 @@
+/*
+Kaic N. Bastidas - 8516048
+Bruno I. Murozaki - 8516476
+
+Atividade 2 - Parte A
+*/
+
 import java.io.* ;
 import java.net.* ;
 import java.util.* ;
