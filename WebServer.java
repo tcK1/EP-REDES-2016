@@ -10,11 +10,11 @@ public final class WebServer {
 		// Estabelecer o socket de escuta.
 		ServerSocket sock = new ServerSocket(port);
 		
-		
 		// Processar a requisiÃ§Ã£o de serviÃ§o HTTP em um laÃ§o infinito.
 		while (true)  {	
-		
+			
 			Socket client = sock.accept();
+			
 			//Construir um objeto para processar a mensagem de requisiÃ§Ã£o HTTP.
 			HttpRequest request = new HttpRequest ( client );
 			// Criar um novo thread para processar a requisiÃ§Ã£o.
@@ -54,10 +54,10 @@ final class HttpRequest implements Runnable {
 		
 		// Ajustar os filtros do trecho de entrada.
 		//?
-		BufferedReader br = ?;
+		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 		
 		// Obter a linha de requisiÃ§Ã£o da mensagem de requisiÃ§Ã£o HTTP.
-		String requestLine = ?;
+		String requestLine = br.readLine();
 		
 		//  Exibir a linha de requisiÃ§Ã£o.
 		System.out.println();
@@ -75,3 +75,5 @@ final class HttpRequest implements Runnable {
 		socket.close();
 		
 	}
+
+}
