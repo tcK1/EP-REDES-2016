@@ -9,10 +9,12 @@ public final class WebServer {
 	
 		// Estabelecer o socket de escuta.
 		ServerSocket sock = new ServerSocket(port);
-		Socket client = sock.accept();
+		
 		
 		// Processar a requisiÃ§Ã£o de serviÃ§o HTTP em um laÃ§o infinito.
 		while (true)  {	
+		
+			Socket client = sock.accept();
 			//Construir um objeto para processar a mensagem de requisiÃ§Ã£o HTTP.
 			HttpRequest request = new HttpRequest ( client );
 			// Criar um novo thread para processar a requisiÃ§Ã£o.
