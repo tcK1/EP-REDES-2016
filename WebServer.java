@@ -8,26 +8,24 @@ public final class WebServer {
 		int port = 6789;
 	
 		// Estabelecer o socket de escuta.
-		?
-		// Processar a requisição de serviço HTTP em um laço infinito.
-		While (true)  {
-			// Escutar requisição de conexão TCP.
-			?
-			
-			//Construir um objeto para processar a mensagem de requisição HTTP.
-			HttpRequest request = new HttpRequest ( ? );
-			// Criar um novo thread para processar a requisição.
+		ServerSocket sock = new ServerSocket(port);
+		Socket client = sock.accept();
+		
+		// Processar a requisiÃ§Ã£o de serviÃ§o HTTP em um laÃ§o infinito.
+		while (true)  {	
+			//Construir um objeto para processar a mensagem de requisiÃ§Ã£o HTTP.
+			HttpRequest request = new HttpRequest ( client );
+			// Criar um novo thread para processar a requisiÃ§Ã£o.
 			Thread thread = new Thread(request);
 			//Iniciar o thread.
-			Thread.start();
-
-			
+			thread.start();
 		}
+	
 	}
 }
 final class HttpRequest implements Runnable {
 	
-	final static String CRLF = “\r\n”;
+	final static String CRLF = "\r\n";
 	Socket socket;
 	
 	// Construtor
@@ -35,8 +33,8 @@ final class HttpRequest implements Runnable {
 		this.socket = socket;
 	}
 	
-	// Implemente o método run() da interface Runnable.
-	Public void run() {
+	// Implemente o mÃ©todo run() da interface Runnable.
+	public void run() {
 		
 		try {
 			processRequest();
@@ -48,22 +46,24 @@ final class HttpRequest implements Runnable {
 	
 	private void processRequest() throws Exception {
 		
-		// Obter uma referência para os trechos de entrada e saída do socket.
-		InputStream is = ?;
-		DataOutputStream os = ?;
+		// Obter uma referÃªncia para os trechos de entrada e saÃ­da do socket.
+		InputStream is = socket.getInputStream();
+		DataOutputStream os = new DataOutputStream(socket.getOutputStream());
+		
 		// Ajustar os filtros do trecho de entrada.
-		?
+		//?
 		BufferedReader br = ?;
 		
-		// Obter a linha de requisição da mensagem de requisição HTTP.
+		// Obter a linha de requisiÃ§Ã£o da mensagem de requisiÃ§Ã£o HTTP.
 		String requestLine = ?;
-		//  Exibir a linha de requisição.
+		
+		//  Exibir a linha de requisiÃ§Ã£o.
 		System.out.println();
 		System.out.println(requestLine);
 
-		// Obter e exibir as linhas de cabeçalho.
+		// Obter e exibir as linhas de cabeÃ§alho.
 		String headerLine = null;
-		While ((headerLine = br.readLine()).length() != 0) {
+		while ((headerLine = br.readLine()).length() != 0) {
 			System.out.println(headerLine);
 		}
 
@@ -73,5 +73,3 @@ final class HttpRequest implements Runnable {
 		socket.close();
 		
 	}
-
-}
