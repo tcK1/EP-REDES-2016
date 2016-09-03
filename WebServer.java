@@ -43,7 +43,7 @@ final class HttpRequest implements Runnable {
 		this.socket = socket;
 	}
 
-	// Implemente o mÃ©todo run() da interface Runnable.
+	// Implemente o método run() da interface Runnable.
 	public void run() {
 
 		try {
