@@ -13,38 +13,39 @@ public final class WebServer {
 
 	public static void main(String arvg[]) throws Exception {
 		int port = 6789;
-	
+
 		// Estabelecer o socket de escuta.
-		ServerSocket sock = new ServerSocket(port);
-		
-		// Processar a requisiÃ§Ã£o de serviÃ§o HTTP em um laÃ§o infinito.
-		while (true)  {	
-			
-			Socket client = sock.accept();
-			
-			//Construir um objeto para processar a mensagem de requisiÃ§Ã£o HTTP.
-			HttpRequest request = new HttpRequest ( client );
-			// Criar um novo thread para processar a requisiÃ§Ã£o.
+		ServerSocket socket = new ServerSocket(port);
+
+		// Processar a requisição de serviço HTTP em um laço infinito.
+		while (true)  {
+
+			// Instancia um objeto Socket para a requisição.
+			Socket client = socket.accept();
+
+			//Construir um objeto para processar a mensagem de requisição HTTP.
+			HttpRequest request = new HttpRequest (client);
+			// Criar um novo thread para processar a requisição.
 			Thread thread = new Thread(request);
 			//Iniciar o thread.
 			thread.start();
 		}
-	
+
 	}
 }
 final class HttpRequest implements Runnable {
-	
+
 	final static String CRLF = "\r\n";
 	Socket socket;
-	
+
 	// Construtor
 	public HttpRequest(Socket socket) throws Exception {
 		this.socket = socket;
 	}
-	
+
 	// Implemente o mÃ©todo run() da interface Runnable.
 	public void run() {
-		
+
 		try {
 			processRequest();
 		} catch (Exception e) {
@@ -52,7 +53,7 @@ final class HttpRequest implements Runnable {
 		}
 
 	}
-	
+
 	private static void sendBytes(FileInputStream fis, OutputStream os) throws Exception {
 		// Construir um buffer de 1K para comportar os bytes no caminho para o socket.
 	byte[] buffer = new byte[1024];
@@ -89,27 +90,26 @@ final class HttpRequest implements Runnable {
 		return "application/octet-stream";
 	}
 
-	
+
 	private void processRequest() throws Exception {
-		
-		// Obter uma referÃªncia para os trechos de entrada e saÃ­da do socket.
+
+		// Obter uma referência para os trechos de entrada e saída do socket.
 		InputStream is = socket.getInputStream();
 		DataOutputStream os = new DataOutputStream(socket.getOutputStream());
-		
+
 		// Ajustar os filtros do trecho de entrada.
-		//?
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
-		
-		// Obter a linha de requisiÃ§Ã£o da mensagem de requisiÃ§Ã£o HTTP.
+
+		// Obter a linha de requisição da mensagem de requisição HTTP.
 		String requestLine = br.readLine();
-		
+
 		// Extrair o nome do arquivo a linha de requisição.
 		StringTokenizer tokens = new StringTokenizer(requestLine);
 		tokens.nextToken(); // pular o método, que deve ser "GET"
 		String fileName = tokens.nextToken();
 		// Acrescente um "." de modo que a requisição do arquivo esteja dentro do diretório atual.
 		fileName = "." + fileName;
-		
+
 		// Abrir o arquivo requisitado.
 		FileInputStream fis = null;
 		Boolean fileExists = true;
@@ -146,10 +146,11 @@ final class HttpRequest implements Runnable {
 			sendBytes(fis, os);
 			fis.close();
 		} else {
+			// Escreve o corpo da mesagem.
 			os.writeBytes(entityBody);
-		}		
-		
-		//  Exibir a linha de requisiÃ§Ã£o.
+		}
+
+		//  Exibir a linha de requisição.
 		System.out.println();
 		System.out.println(requestLine);
 
@@ -158,13 +159,12 @@ final class HttpRequest implements Runnable {
 		while ((headerLine = br.readLine()).length() != 0) {
 			System.out.println(headerLine);
 		}
-		
-		
+				
 		// Feche as cadeias e socket.
 		os.close();
 		br.close();
 		socket.close();
-		
+
 	}
 
 }
