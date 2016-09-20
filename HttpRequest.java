@@ -1,5 +1,3 @@
-
-
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -7,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.File;
 import java.net.Socket;
 import java.util.StringTokenizer;
 
@@ -39,6 +38,15 @@ public class HttpRequest implements Runnable{
 		while((bytes = fis.read(buffer)) != -1 ) {
 			os.write(buffer, 0, bytes);
 		}
+	}
+	
+	private static void writeHeader(String statusLine, String contentTypeLine, DataOutputStream os) throws Exception {
+		// Enviar a linha de status.
+		os.writeBytes(statusLine);
+		// Enviar a linha de tipo de conteúdo.
+		os.writeBytes(contentTypeLine);
+		// Enviar uma linha em branco para indicar o fim das linhas de cabeçalho.
+		os.writeBytes(CRLF);
 	}
 
 	private static String contentType ( String fileName ) {
@@ -86,57 +94,87 @@ public class HttpRequest implements Runnable{
 		String fileName = tokens.nextToken();
 		// Acrescente um "." de modo que a requisição do arquivo esteja dentro do diretório atual.
 		fileName = "." + fileName;
-
-		// Abrir o arquivo requisitado.
+		
+		// Instancia variaveis do arquivo
+		File file = new File(fileName);
 		FileInputStream fis = null;
-		boolean fileExists = true;
-		try {
-			fis = new FileInputStream(fileName);
-		} catch (FileNotFoundException e) {
-			fileExists = false;
-		}
-
-		// Construir a mensagem de resposta.
+		
+		// Instancia variaveis de resposta
 		String statusLine = null;
 		String contentTypeLine = null;
 		String entityBody = null;
-		if (fileExists) {
-			statusLine = "HTTP/1.0 200";
-			contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
+		
+		// Ve se o arquivo ou diretório existe
+		if(file.exists()){
+			if(file.isFile()){ // Se for arquivo
+				// Abrir o arquivo requisitado.
+				fis = new FileInputStream(fileName);
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
+				
+				writeHeader(statusLine, contentTypeLine, os);
+				
+				// Escreve corpo da mensagem
+				sendBytes(fis, os);
+				fis.close();
+			}
+			if(file.isDirectory()){ // Se for diretório
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				entityBody = "<HTML>" +
+					"<HEAD><TITLE>Diretório</TITLE></HEAD>" +
+					"<BODY>";
+
+				File[] filesList = file.listFiles();
+				for(File f : filesList){
+					if(f.isDirectory())
+						//<a href="http://www.w3schools.com">Visit W3Schools</a>
+						entityBody = entityBody + "<A HREF='"+fileName+f.getName()+"'>"+f.getName()+"/</A></BR>";
+					if(f.isFile()){
+						entityBody = entityBody + "<A HREF='"+fileName+f.getName()+"'>"+f.getName()+"</A></BR>";
+					}
+				}
+
+				entityBody = entityBody + "</BODY></HTML>";
+				writeHeader(statusLine, contentTypeLine, os);
+					
+				// Escreve o corpo da mesagem.
+				os.writeBytes(entityBody);
+			}
 		} else {
 			statusLine = "HTTP/1.0 404";
 			contentTypeLine = "Content-type: text/html" + CRLF;
 			entityBody = "<HTML>" +
 				"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
 				"<BODY>Not Found</BODY></HTML>";
-		}
-
-		// Enviar a linha de status.
-		os.writeBytes(statusLine);
-		// Enviar a linha de tipo de conteúdo.
-		os.writeBytes(contentTypeLine);
-		// Enviar uma linha em branco para indicar o fim das linhas de cabeçalho.
-		os.writeBytes(CRLF);
-
-		// Enviar o corpo da entidade.
-		if (fileExists) {
-			sendBytes(fis, os);
-			fis.close();
-		} else {
+				
+			writeHeader(statusLine, contentTypeLine, os);
+				
 			// Escreve o corpo da mesagem.
 			os.writeBytes(entityBody);
 		}
-
+		
 		//  Exibir a linha de requisição.
 		System.out.println();
 		System.out.println(requestLine);
-
-		// Obter e exibir as linhas de cabeÃ§alho.
+		
+		// Obter e exibir as linhas de cabeçalho.
 		String headerLine = null;
 		while ((headerLine = br.readLine()).length() != 0) {
 			System.out.println(headerLine);
 		}
-				
+		
+		// Imprime os arquivos e pastas do diretorio raiz
+		File curDir = new File(".");
+		File[] filesList = curDir.listFiles();
+        for(File f : filesList){
+            if(f.isDirectory())
+                System.out.println(f.getName());
+            if(f.isFile()){
+                System.out.println(f.getName());
+            }
+        }
+		
 		// Feche as cadeias e socket.
 		os.close();
 		br.close();
