@@ -13,10 +13,12 @@ public class HttpRequest implements Runnable{
 
 	final static String CRLF = "\r\n";
 	Socket socket;
+	private WebServer wb;
 
 	// Construtor
-	public HttpRequest(Socket socket) throws Exception {
+	public HttpRequest(Socket socket, WebServer wb) throws Exception {
 		this.socket = socket;
+		this.wb = wb;
 	}
 
 	// Implemente o método run() da interface Runnable.
@@ -104,6 +106,8 @@ public class HttpRequest implements Runnable{
 		String contentTypeLine = null;
 		String entityBody = null;
 		
+		
+		
 		// Ve se o arquivo ou diretório existe
 		if(file.exists()){
 			if(file.isFile()){ // Se for arquivo
@@ -117,8 +121,21 @@ public class HttpRequest implements Runnable{
 				// Escreve corpo da mensagem
 				sendBytes(fis, os);
 				fis.close();
-			}
-			if(file.isDirectory()){ // Se for diretório
+			} else if(!wb.isShowDirectories()) {
+				
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				entityBody = "<HTML>" +
+					"<HEAD><TITLE>Diretorio</TITLE></HEAD>" +
+					"<BODY>Conteudo nao pode ser mostrado</BODY></HTML>";
+				
+				writeHeader(statusLine, contentTypeLine, os);
+				
+				// Escreve o corpo da mesagem.
+				os.writeBytes(entityBody);
+				
+				
+			} else if(file.isDirectory()){ // Se for diretório
 				statusLine = "HTTP/1.0 200";
 				contentTypeLine = "Content-type: text/html" + CRLF;
 				entityBody = "<HTML>" +
