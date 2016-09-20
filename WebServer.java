@@ -15,9 +15,9 @@ public class WebServer {
 	
 	private ServerSocket socket;
 	private int port;
-	private boolean showDirectories;
+	private int showDirectories;
 	
-	public WebServer(int port, boolean showDirectories){
+	public WebServer(int port, int showDirectories){
 		
 		this.port = port;
 		this.showDirectories = showDirectories;
@@ -55,8 +55,7 @@ public class WebServer {
 		}
 	}
 	
-	public boolean isShowDirectories() {
+	public int getShowDirectories() {
 		return showDirectories;
 	}
-	
 }

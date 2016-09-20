@@ -16,7 +16,7 @@ public class Main {
 			p.load(is);
 			
 			int port = Integer.parseInt(p.getProperty("port"));
-			boolean showDirs = Boolean.parseBoolean(p.getProperty("showDirectories"));
+			int showDirs = Integer.parseInt(p.getProperty("showOptions"));
 			
 			System.out.println(showDirs);
 			

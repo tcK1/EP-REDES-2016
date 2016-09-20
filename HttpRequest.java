@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -105,35 +106,25 @@ public class HttpRequest implements Runnable{
 		String statusLine = null;
 		String contentTypeLine = null;
 		String entityBody = null;
-		
-		
-		
+
 		// Ve se o arquivo ou diretório existe
 		if(file.exists()){
 			if(file.isFile()){ // Se for arquivo
-				// Abrir o arquivo requisitado.
-				fis = new FileInputStream(fileName);
-				statusLine = "HTTP/1.0 200";
-				contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
 				
-				writeHeader(statusLine, contentTypeLine, os);
+				sendServerFile(os, fileName);
 				
-				// Escreve corpo da mensagem
-				sendBytes(fis, os);
-				fis.close();
-			} else if(!wb.isShowDirectories()) {
+			} else if(wb.getShowDirectories() == 1) {
 				
-				statusLine = "HTTP/1.0 200";
-				contentTypeLine = "Content-type: text/html" + CRLF;
-				entityBody = "<HTML>" +
-					"<HEAD><TITLE>Diretorio</TITLE></HEAD>" +
-					"<BODY>Conteudo nao pode ser mostrado</BODY></HTML>";
+				writeUnauthorizedDirectory(os);
+			
+			} else if(wb.getShowDirectories() == 2) {
 				
-				writeHeader(statusLine, contentTypeLine, os);
-				
-				// Escreve o corpo da mesagem.
-				os.writeBytes(entityBody);
-				
+				File indexFile = new File("index.html");
+				if(!indexFile.exists()){
+					writeUnauthorizedDirectory(os);
+				} else {
+					sendServerFile(os, "index.html");
+				}
 				
 			} else if(file.isDirectory()){ // Se for diretório
 				statusLine = "HTTP/1.0 200";
@@ -197,6 +188,40 @@ public class HttpRequest implements Runnable{
 		br.close();
 		socket.close();
 
+	}
+
+	private void sendServerFile(DataOutputStream os, String fileName)
+			throws FileNotFoundException, Exception, IOException {
+		FileInputStream fis;
+		String statusLine;
+		String contentTypeLine;
+		// Abrir o arquivo requisitado.
+		fis = new FileInputStream(fileName);
+		statusLine = "HTTP/1.0 200";
+		contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
+		
+		writeHeader(statusLine, contentTypeLine, os);
+		
+		// Escreve corpo da mensagem
+		sendBytes(fis, os);
+		fis.close();
+	}
+
+	private void writeUnauthorizedDirectory(DataOutputStream os)
+			throws Exception, IOException {
+		String statusLine;
+		String contentTypeLine;
+		String entityBody;
+		statusLine = "HTTP/1.0 200";
+		contentTypeLine = "Content-type: text/html" + CRLF;
+		entityBody = "<HTML>" +
+			"<HEAD><TITLE>Diretorio</TITLE></HEAD>" +
+			"<BODY>Conteudo nao pode ser mostrado</BODY></HTML>";
+		
+		writeHeader(statusLine, contentTypeLine, os);
+		
+		// Escreve o corpo da mesagem.
+		os.writeBytes(entityBody);
 	}
 	
 }
