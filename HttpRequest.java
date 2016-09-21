@@ -113,11 +113,11 @@ public class HttpRequest implements Runnable{
 				
 				sendServerFile(os, fileName);
 				
-			} else if(wb.getShowDirectories() == 1) {
+			} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
 				
 				writeUnauthorizedDirectory(os);
 			
-			} else if(wb.getShowDirectories() == 2) {
+			} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
 				
 				File indexFile = new File("index.html");
 				if(!indexFile.exists()){
@@ -127,39 +127,14 @@ public class HttpRequest implements Runnable{
 				}
 				
 			} else if(file.isDirectory()){ // Se for diretório
-				statusLine = "HTTP/1.0 200";
-				contentTypeLine = "Content-type: text/html" + CRLF;
-				entityBody = "<HTML>" +
-					"<HEAD><TITLE>Diretório</TITLE></HEAD>" +
-					"<BODY>";
-
-				File[] filesList = file.listFiles();
-				for(File f : filesList){
-					if(f.isDirectory())
-						//<a href="http://www.w3schools.com">Visit W3Schools</a>
-						entityBody = entityBody + "<A HREF='"+fileName+f.getName()+"'>"+f.getName()+"/</A></BR>";
-					if(f.isFile()){
-						entityBody = entityBody + "<A HREF='"+fileName+f.getName()+"'>"+f.getName()+"</A></BR>";
-					}
-				}
-
-				entityBody = entityBody + "</BODY></HTML>";
-				writeHeader(statusLine, contentTypeLine, os);
-					
-				// Escreve o corpo da mesagem.
-				os.writeBytes(entityBody);
+			
+				writeDirectory(os, file, fileName);
+				
 			}
 		} else {
-			statusLine = "HTTP/1.0 404";
-			contentTypeLine = "Content-type: text/html" + CRLF;
-			entityBody = "<HTML>" +
-				"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
-				"<BODY>Not Found</BODY></HTML>";
-				
-			writeHeader(statusLine, contentTypeLine, os);
-				
-			// Escreve o corpo da mesagem.
-			os.writeBytes(entityBody);
+			
+			fileNotFound(os);
+			
 		}
 		
 		//  Exibir a linha de requisição.
@@ -205,6 +180,50 @@ public class HttpRequest implements Runnable{
 		// Escreve corpo da mensagem
 		sendBytes(fis, os);
 		fis.close();
+	}
+	
+	private void fileNotFound(DataOutputStream os) throws Exception {
+		String statusLine;
+		String contentTypeLine;
+		String entityBody;
+		
+		statusLine = "HTTP/1.0 404";
+		contentTypeLine = "Content-type: text/html" + CRLF;
+		entityBody = "<HTML>" +
+			"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
+			"<BODY>Not Found</BODY></HTML>";
+			
+		writeHeader(statusLine, contentTypeLine, os);
+			
+		// Escreve o corpo da mesagem.
+		os.writeBytes(entityBody);
+	}
+	
+	private void writeDirectory(DataOutputStream os, File directory, String path) throws Exception {
+		String statusLine;
+		String contentTypeLine;
+		String entityBody;
+				
+		statusLine = "HTTP/1.0 200";
+		contentTypeLine = "Content-type: text/html" + CRLF;
+		entityBody = "<HTML>" +
+			"<HEAD><TITLE>"+path+"</TITLE></HEAD>" +
+			"<BODY>";
+
+		File[] filesList = directory.listFiles();
+		for(File f : filesList){
+			if(f.isDirectory())
+				entityBody = entityBody + "<A HREF='"+path+f.getName()+"'>"+f.getName()+"/</A></BR>";
+			if(f.isFile()){
+				entityBody = entityBody + "<A HREF='"+path+f.getName()+"'>"+f.getName()+"</A></BR>";
+			}
+		}
+
+		entityBody = entityBody + "</BODY></HTML>";
+		writeHeader(statusLine, contentTypeLine, os);
+			
+		// Escreve o corpo da mesagem.
+		os.writeBytes(entityBody);
 	}
 
 	private void writeUnauthorizedDirectory(DataOutputStream os)
