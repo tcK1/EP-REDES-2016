@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.io.File;
 import java.net.Socket;
 import java.util.StringTokenizer;
+import java.util.Calendar;
 
 public class HttpRequest implements Runnable{
 
@@ -22,7 +23,7 @@ public class HttpRequest implements Runnable{
 		this.wb = wb;
 	}
 
-	// Implemente o método run() da interface Runnable.
+	// Implemente o metodo run() da interface Runnable.
 	public void run() {
 
 		try {
@@ -33,22 +34,26 @@ public class HttpRequest implements Runnable{
 
 	}
 
-	private static void sendBytes(FileInputStream fis, OutputStream os) throws Exception {
+	private static int sendBytes(FileInputStream fis, OutputStream os) throws Exception {
 		// Construir um buffer de 1K para comportar os bytes no caminho para o socket.
 	byte[] buffer = new byte[1024];
 		int bytes = 0;
-		// Copiar o arquivo requisitado dentro da cadeia de saída do socket.
+		// Copiar o arquivo requisitado dentro da cadeia de saida do socket.
+		int bytesSent = 0;
 		while((bytes = fis.read(buffer)) != -1 ) {
 			os.write(buffer, 0, bytes);
+			bytesSent++;
 		}
+
+		return bytesSent;
 	}
-	
+
 	private static void writeHeader(String statusLine, String contentTypeLine, DataOutputStream os) throws Exception {
 		// Enviar a linha de status.
 		os.writeBytes(statusLine);
-		// Enviar a linha de tipo de conteúdo.
+		// Enviar a linha de tipo de conteudo.
 		os.writeBytes(contentTypeLine);
-		// Enviar uma linha em branco para indicar o fim das linhas de cabeçalho.
+		// Enviar uma linha em branco para indicar o fim das linhas de cabecalho.
 		os.writeBytes(CRLF);
 	}
 
@@ -81,72 +86,72 @@ public class HttpRequest implements Runnable{
 
 	private void processRequest() throws Exception {
 
-		// Obter uma referência para os trechos de entrada e saída do socket.
+		// Obter uma referÃªncia para os trechos de entrada e saÃ­da do socket.
 		InputStream is = socket.getInputStream();
 		DataOutputStream os = new DataOutputStream(socket.getOutputStream());
 
 		// Ajustar os filtros do trecho de entrada.
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
-		// Obter a linha de requisição da mensagem de requisição HTTP.
+		// Obter a linha de requisiÃ§Ã£o da mensagem de requisiÃ§Ã£o HTTP.
 		String requestLine = br.readLine();
 
-		// Extrair o nome do arquivo a linha de requisição.
+		// Extrair o nome do arquivo a linha de requisiÃ§Ã£o.
 		StringTokenizer tokens = new StringTokenizer(requestLine);
-		tokens.nextToken(); // pular o método, que deve ser "GET"
+		tokens.nextToken(); // pular o mÃ©todo, que deve ser "GET"
 		String fileName = tokens.nextToken();
-		// Acrescente um "." de modo que a requisição do arquivo esteja dentro do diretório atual.
+		// Acrescente um "." de modo que a requisiÃ§Ã£o do arquivo esteja dentro do diretÃ³rio atual.
 		fileName = "." + fileName;
-		
+
 		// Instancia variaveis do arquivo
 		File file = new File(fileName);
 		FileInputStream fis = null;
-		
+
 		// Instancia variaveis de resposta
 		String statusLine = null;
 		String contentTypeLine = null;
 		String entityBody = null;
 
-		// Ve se o arquivo ou diretório existe
+		// Ve se o arquivo ou diretÃ³rio existe
 		if(file.exists()){
 			if(file.isFile()){ // Se for arquivo
-				
+
 				sendServerFile(os, fileName);
-				
-			} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
-				
+
+			} else if(wb.getShowDirectories() == 1) { // NÃ£o mostra os diretÃ³rios, sÃ³ os arquivos
+
 				writeUnauthorizedDirectory(os);
-			
-			} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
-				
+
+			} else if(wb.getShowDirectories() == 2) { // Mostra um index padrÃ£o caso ele exista
+
 				File indexFile = new File("index.html");
 				if(!indexFile.exists()){
 					writeUnauthorizedDirectory(os);
 				} else {
 					sendServerFile(os, "index.html");
 				}
-				
-			} else if(file.isDirectory()){ // Se for diretório
-			
+
+			} else if(file.isDirectory()){ // Se for diretÃ³rio
+
 				writeDirectory(os, file, fileName);
-				
+
 			}
 		} else {
-			
+
 			fileNotFound(os);
-			
+
 		}
-		
-		//  Exibir a linha de requisição.
+
+		//  Exibir a linha de requisiÃ§Ã£o.
 		System.out.println();
 		System.out.println(requestLine);
-		
-		// Obter e exibir as linhas de cabeçalho.
+
+		// Obter e exibir as linhas de cabeÃ§alho.
 		String headerLine = null;
 		while ((headerLine = br.readLine()).length() != 0) {
 			System.out.println(headerLine);
 		}
-		
+
 		// Imprime os arquivos e pastas do diretorio raiz
 		File curDir = new File(".");
 		File[] filesList = curDir.listFiles();
@@ -157,7 +162,18 @@ public class HttpRequest implements Runnable{
                 System.out.println(f.getName());
             }
         }
-		
+
+		// ip e porta
+		System.out.println(socket.toString());
+		// sÃ³ o ip
+		//System.out.println(socket.getInetAddress().toString());
+		// conteudo requisitado
+		System.out.println(fileName);
+		// hora
+		System.out.println(Calendar.getInstance().getTime().toString());
+		// quantidade de dados transmitidos
+		System.out.println(os.size());
+
 		// Feche as cadeias e socket.
 		os.close();
 		br.close();
@@ -174,36 +190,36 @@ public class HttpRequest implements Runnable{
 		fis = new FileInputStream(fileName);
 		statusLine = "HTTP/1.0 200";
 		contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
-		
+
 		writeHeader(statusLine, contentTypeLine, os);
-		
+
 		// Escreve corpo da mensagem
 		sendBytes(fis, os);
 		fis.close();
 	}
-	
+
 	private void fileNotFound(DataOutputStream os) throws Exception {
 		String statusLine;
 		String contentTypeLine;
 		String entityBody;
-		
+
 		statusLine = "HTTP/1.0 404";
 		contentTypeLine = "Content-type: text/html" + CRLF;
 		entityBody = "<HTML>" +
 			"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
 			"<BODY>Not Found</BODY></HTML>";
-			
+
 		writeHeader(statusLine, contentTypeLine, os);
-			
+
 		// Escreve o corpo da mesagem.
 		os.writeBytes(entityBody);
 	}
-	
+
 	private void writeDirectory(DataOutputStream os, File directory, String path) throws Exception {
 		String statusLine;
 		String contentTypeLine;
 		String entityBody;
-				
+
 		statusLine = "HTTP/1.0 200";
 		contentTypeLine = "Content-type: text/html" + CRLF;
 		entityBody = "<HTML>" +
@@ -213,7 +229,7 @@ public class HttpRequest implements Runnable{
 		File[] filesList = directory.listFiles();
 		for(File f : filesList){
 			if(f.isDirectory())
-				entityBody = entityBody + "<A HREF='"+path+f.getName()+"'>"+f.getName()+"/</A></BR>";
+				entityBody = entityBody + "<A HREF='"+path+"/"+f.getName()+"'>"+f.getName()+"/</A></BR>";
 			if(f.isFile()){
 				entityBody = entityBody + "<A HREF='"+path+f.getName()+"'>"+f.getName()+"</A></BR>";
 			}
@@ -221,7 +237,7 @@ public class HttpRequest implements Runnable{
 
 		entityBody = entityBody + "</BODY></HTML>";
 		writeHeader(statusLine, contentTypeLine, os);
-			
+
 		// Escreve o corpo da mesagem.
 		os.writeBytes(entityBody);
 	}
@@ -236,11 +252,11 @@ public class HttpRequest implements Runnable{
 		entityBody = "<HTML>" +
 			"<HEAD><TITLE>Diretorio</TITLE></HEAD>" +
 			"<BODY>Conteudo nao pode ser mostrado</BODY></HTML>";
-		
+
 		writeHeader(statusLine, contentTypeLine, os);
-		
+
 		// Escreve o corpo da mesagem.
 		os.writeBytes(entityBody);
 	}
-	
+
 }
