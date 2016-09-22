@@ -229,9 +229,9 @@ public class HttpRequest implements Runnable{
 		File[] filesList = directory.listFiles();
 		for(File f : filesList){
 			if(f.isDirectory())
-				entityBody = entityBody + "<A HREF='"+path+"/"+f.getName()+"'>"+f.getName()+"/</A></BR>";
+				entityBody = entityBody + "<A HREF='/"+path+"/"+f.getName()+"'>"+f.getName()+"/</A></BR>";
 			if(f.isFile()){
-				entityBody = entityBody + "<A HREF='"+path+f.getName()+"'>"+f.getName()+"</A></BR>";
+				entityBody = entityBody + "<A HREF='/"+path+"/"+f.getName()+"'>"+f.getName()+"</A></BR>";
 			}
 		}
 
