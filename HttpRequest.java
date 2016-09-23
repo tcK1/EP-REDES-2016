@@ -1,15 +1,6 @@
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.File;
-import java.net.Socket;
-import java.util.StringTokenizer;
-import java.util.Calendar;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class HttpRequest implements Runnable{
 
@@ -112,34 +103,73 @@ public class HttpRequest implements Runnable{
 		String contentTypeLine = null;
 		String entityBody = null;
 
-		// Ve se o arquivo ou diretório existe
-		if(file.exists()){
-			if(file.isFile()){ // Se for arquivo
+		String[] parts = requestLine.split(" ");
+		switch(parts[0]){
+			case "GET":
+				// Ve se o arquivo ou diretório existe
+				if(file.exists()){
+					if(file.isFile()){ // Se for arquivo
 
-				sendServerFile(os, fileName);
+						sendServerFile(os, fileName, "GET");
 
-			} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
+					} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
 
-				writeUnauthorizedDirectory(os);
+						writeUnauthorizedDirectory(os, "GET");
 
-			} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
+					} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
 
-				File indexFile = new File("index.html");
-				if(!indexFile.exists()){
-					writeUnauthorizedDirectory(os);
+						File indexFile = new File("index.html");
+						if(!indexFile.exists()){
+							writeUnauthorizedDirectory(os, "GET");
+						} else {
+							sendServerFile(os, "index.html", "GET");
+						}
+
+					} else if(file.isDirectory()){ // Se for diretório
+
+						writeDirectory(os, file, fileName, "GET");
+
+					}
 				} else {
-					sendServerFile(os, "index.html");
+
+					fileNotFound(os, "GET");
+
 				}
+				break;
+			case "HEAD":
+				// Ve se o arquivo ou diretório existe
+				if(file.exists()){
+					if(file.isFile()){ // Se for arquivo
 
-			} else if(file.isDirectory()){ // Se for diretório
+						sendServerFile(os, fileName, "HEAD");
 
-				writeDirectory(os, file, fileName);
+					} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
 
-			}
-		} else {
+						writeUnauthorizedDirectory(os, "HEAD");
 
-			fileNotFound(os);
+					} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
 
+						File indexFile = new File("index.html");
+						if(!indexFile.exists()){
+							writeUnauthorizedDirectory(os, "HEAD");
+						} else {
+							sendServerFile(os, "index.html", "HEAD");
+						}
+
+					} else if(file.isDirectory()){ // Se for diretório
+
+						writeDirectory(os, file, fileName, "HEAD");
+
+					}
+				} else {
+
+					fileNotFound(os, "HEAD");
+
+				}
+				break;
+			case "POST":
+				writeResponsePost(os, br, fileName);
+				break;
 		}
 
 		//  Exibir a linha de requisição.
@@ -152,6 +182,7 @@ public class HttpRequest implements Runnable{
 			System.out.println(headerLine);
 		}
 
+		/*
 		// Imprime os arquivos e pastas do diretorio raiz
 		File curDir = new File(".");
 		File[] filesList = curDir.listFiles();
@@ -162,6 +193,7 @@ public class HttpRequest implements Runnable{
                 System.out.println(f.getName());
             }
         }
+		*/
 
 		// ip e porta
 		System.out.println(socket.toString());
@@ -173,6 +205,8 @@ public class HttpRequest implements Runnable{
 		System.out.println(Calendar.getInstance().getTime().toString());
 		// quantidade de dados transmitidos
 		System.out.println(os.size());
+		// tipo da requisição
+		System.out.println(parts[0]);
 
 		// Feche as cadeias e socket.
 		os.close();
@@ -181,82 +215,160 @@ public class HttpRequest implements Runnable{
 
 	}
 
-	private void sendServerFile(DataOutputStream os, String fileName)
-			throws FileNotFoundException, Exception, IOException {
-		FileInputStream fis;
+	
+	private void writeResponsePost(DataOutputStream os, BufferedReader br, String fileName) throws Exception {
 		String statusLine;
 		String contentTypeLine;
-		// Abrir o arquivo requisitado.
-		fis = new FileInputStream(fileName);
+		String entityBody;
+		
 		statusLine = "HTTP/1.0 200";
 		contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
-
-		writeHeader(statusLine, contentTypeLine, os);
-
-		// Escreve corpo da mensagem
-		sendBytes(fis, os);
-		fis.close();
-	}
-
-	private void fileNotFound(DataOutputStream os) throws Exception {
-		String statusLine;
-		String contentTypeLine;
-		String entityBody;
-
-		statusLine = "HTTP/1.0 404";
-		contentTypeLine = "Content-type: text/html" + CRLF;
 		entityBody = "<HTML>" +
-			"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
-			"<BODY>Not Found</BODY></HTML>";
-
-		writeHeader(statusLine, contentTypeLine, os);
-
-		// Escreve o corpo da mesagem.
-		os.writeBytes(entityBody);
-	}
-
-	private void writeDirectory(DataOutputStream os, File directory, String path) throws Exception {
-		String statusLine;
-		String contentTypeLine;
-		String entityBody;
-
-		statusLine = "HTTP/1.0 200";
-		contentTypeLine = "Content-type: text/html" + CRLF;
-		entityBody = "<HTML>" +
-			"<HEAD><TITLE>"+path+"</TITLE></HEAD>" +
-			"<BODY>";
-
-		File[] filesList = directory.listFiles();
-		for(File f : filesList){
-			if(f.isDirectory())
-				entityBody = entityBody + "<A HREF='/"+path+"/"+f.getName()+"'>"+f.getName()+"/</A></BR>";
-			if(f.isFile()){
-				entityBody = entityBody + "<A HREF='/"+path+"/"+f.getName()+"'>"+f.getName()+"</A></BR>";
-			}
+					"<HEAD><TITLE>POST DATA</TITLE></HEAD>" +
+					"<BODY>";
+					
+		String headerLine = null;
+		while((headerLine = br.readLine()).length() != 0){
+			entityBody = entityBody + headerLine;
 		}
 
-		entityBody = entityBody + "</BODY></HTML>";
-		writeHeader(statusLine, contentTypeLine, os);
+		// Dados do POST
+		StringBuilder payload = new StringBuilder();
+		while(br.ready()){
+			payload.append((char) br.read());
+		}
+		
+		entityBody = entityBody + payload.toString();
+	
+	}
+	private void sendServerFile(DataOutputStream os, String fileName, String MIME)
+			throws FileNotFoundException, Exception, IOException {
+		String statusLine;
+		String contentTypeLine;
+		String entityBody;
+		switch (MIME) {
+			case "GET":
+				FileInputStream fis;
+				// Abrir o arquivo requisitado.
+				fis = new FileInputStream(fileName);
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
 
-		// Escreve o corpo da mesagem.
-		os.writeBytes(entityBody);
+				writeHeader(statusLine, contentTypeLine, os);
+
+				// Escreve corpo da mensagem
+				sendBytes(fis, os);
+				fis.close();
+				break;
+			case "HEAD":
+				// Abrir o arquivo requisitado.
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
+
+				writeHeader(statusLine, contentTypeLine, os);
+
+				break;
+		}
 	}
 
-	private void writeUnauthorizedDirectory(DataOutputStream os)
+	private void fileNotFound(DataOutputStream os, String MIME) throws Exception {
+		String statusLine;
+		String contentTypeLine;
+		switch (MIME) {
+			case "GET":
+				String entityBody;
+
+				statusLine = "HTTP/1.0 404";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				entityBody = "<HTML>" +
+					"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
+					"<BODY>Not Found</BODY></HTML>";
+
+				writeHeader(statusLine, contentTypeLine, os);
+
+				// Escreve o corpo da mesagem.
+				os.writeBytes(entityBody);
+				break;
+			case "HEAD":
+				statusLine = "HTTP/1.0 404";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+
+				writeHeader(statusLine, contentTypeLine, os);
+				break;
+		}
+	}
+
+	private void writeDirectory(DataOutputStream os, File directory, String path, String MIME) throws Exception {
+		String statusLine;
+		String contentTypeLine;
+		switch (MIME) {
+			case "GET":
+				String entityBody;
+
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				entityBody = "<HTML>" +
+					"<HEAD><TITLE>"+path+"</TITLE></HEAD>" +
+					"<BODY>";
+
+				File[] filesList = directory.listFiles();
+				for(File f : filesList){
+					if(path.equals("./")){
+						if(f.isDirectory())
+							entityBody = entityBody + "<A HREF='/"+f.getName()+"'>"+f.getName()+"/</A></BR>";
+						if(f.isFile()){
+							entityBody = entityBody + "<A HREF='/"+f.getName()+"'>"+f.getName()+"</A></BR>";
+						}
+					} else {
+						if(f.isDirectory())
+							entityBody = entityBody + "<A HREF='/"+path+"/"+f.getName()+"'>"+f.getName()+"/</A></BR>";
+						if(f.isFile()){
+							entityBody = entityBody + "<A HREF='/"+path+"/"+f.getName()+"'>"+f.getName()+"</A></BR>";
+						}
+					}
+				}
+
+				entityBody = entityBody + "</BODY></HTML>";
+				writeHeader(statusLine, contentTypeLine, os);
+
+				// Escreve o corpo da mesagem.
+				os.writeBytes(entityBody);
+				break;
+			case "HEAD":
+				statusLine = "HTTP/1.0 200";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				writeHeader(statusLine, contentTypeLine, os);
+
+				break;
+		}
+	}
+
+	private void writeUnauthorizedDirectory(DataOutputStream os, String MIME)
 			throws Exception, IOException {
 		String statusLine;
 		String contentTypeLine;
-		String entityBody;
-		statusLine = "HTTP/1.0 200";
-		contentTypeLine = "Content-type: text/html" + CRLF;
-		entityBody = "<HTML>" +
-			"<HEAD><TITLE>Diretorio</TITLE></HEAD>" +
-			"<BODY>Conteudo nao pode ser mostrado</BODY></HTML>";
+		switch (MIME) {
+			case "GET":
+				String entityBody;
+				statusLine = "HTTP/1.0 401";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				entityBody = "<HTML>" +
+					"<HEAD><TITLE>Diretorio</TITLE></HEAD>" +
+					"<BODY>Conteudo nao pode ser mostrado</BODY></HTML>";
 
-		writeHeader(statusLine, contentTypeLine, os);
+				writeHeader(statusLine, contentTypeLine, os);
 
-		// Escreve o corpo da mesagem.
-		os.writeBytes(entityBody);
+				// Escreve o corpo da mesagem.
+				os.writeBytes(entityBody);
+				break;
+			case "HEAD":
+				statusLine = "HTTP/1.0 401";
+				contentTypeLine = "Content-type: text/html" + CRLF;
+				
+				writeHeader(statusLine, contentTypeLine, os);
+
+				break;
+		}
 	}
 
 }
