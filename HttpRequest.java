@@ -1,6 +1,13 @@
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
 
 public class HttpRequest implements Runnable{
 
@@ -20,7 +27,7 @@ public class HttpRequest implements Runnable{
 		try {
 			processRequest();
 		} catch (Exception e) {
-			System.out.println(e);
+			e.printStackTrace();
 		}
 
 	}
@@ -96,61 +103,44 @@ public class HttpRequest implements Runnable{
 		// Ajustar os filtros do trecho de entrada.
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
-		// Obter a linha de requisição da mensagem de requisição HTTP.
-		String requestLine = br.readLine();
-
-		// Extrair o nome do arquivo a linha de requisição.
-		StringTokenizer tokens = new StringTokenizer(requestLine);
-		tokens.nextToken(); // pular o método, que deve ser "GET"
-		String fileName = tokens.nextToken();
-		// Acrescente um "." de modo que a requisição do arquivo esteja dentro do diretório atual.
-		fileName = "." + fileName;
-
-		if(wb.isProtectedDir(fileName)){
-			writeProtectedDirectory(os);
-		}
+		HTTP message = HTTPParser.bufferToHTTP(br);
 		
-		// Instancia variaveis do arquivo
+		String fileName = message.getHttpFile();
+		String method = message.getMethod();
+		
 		File file = new File(fileName);
 		FileInputStream fis = null;
 
-		
-		// Instancia variaveis de resposta
-		String statusLine = null;
-		String contentTypeLine = null;
-		String entityBody = null;
-
-		String[] parts = requestLine.split(" ");
-		switch(parts[0]){
+		switch(method){
 			case "GET":
 			case "HEAD":
 				// Ve se o arquivo ou diretório existe
 				if(file.exists()){
 					if(file.isFile()){ // Se for arquivo
 
-						sendServerFile(os, fileName, parts[0]);
+						sendServerFile(os, fileName, method);
 
 					} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
 
-						writeUnauthorizedDirectory(os, parts[0]);
+						writeUnauthorizedDirectory(os, method);
 
 					} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
 
 						File indexFile = new File("index.html");
 						if(!indexFile.exists()){
-							writeUnauthorizedDirectory(os, parts[0]);
+							writeUnauthorizedDirectory(os, method);
 						} else {
-							sendServerFile(os, "index.html", parts[0]);
+							sendServerFile(os, "index.html", method);
 						}
 
 					} else if(file.isDirectory()){ // Se for diretório
 
-						writeDirectory(os, file, fileName, parts[0]);
+						writeDirectory(os, file, fileName, method);
 
 					}
 				} else {
 
-					fileNotFound(os, parts[0]);
+					fileNotFound(os, method);
 
 				}
 				break;
@@ -158,48 +148,25 @@ public class HttpRequest implements Runnable{
 				writeResponsePost(os, br, fileName);
 				break;
 		}
-
-		//  Exibir a linha de requisição.
-		System.out.println();
-		System.out.println(requestLine);
-
-		// Obter e exibir as linhas de cabeçalho.
-		String headerLine = null;
-		while ((headerLine = br.readLine()).length() != 0) {
-			System.out.println(headerLine);
-		}
-
-		/*
-		// Imprime os arquivos e pastas do diretorio raiz
-		File curDir = new File(".");
-		File[] filesList = curDir.listFiles();
-        for(File f : filesList){
-            if(f.isDirectory())
-                System.out.println(f.getName());
-            if(f.isFile()){
-                System.out.println(f.getName());
-            }
-        }
-		*/
-
-		// ip e porta
-		System.out.println(socket.toString());
-		// só o ip
-		//System.out.println(socket.getInetAddress().toString());
-		// conteudo requisitado
-		System.out.println(fileName);
-		// hora
-		System.out.println(Calendar.getInstance().getTime().toString());
-		// quantidade de dados transmitidos
-		System.out.println(os.size());
-		// tipo da requisição
-		System.out.println(parts[0]);
+		
+		printHTTP(message);
 
 		// Feche as cadeias e socket.
 		os.close();
 		br.close();
 		socket.close();
 
+	}
+	
+	private static void printHTTP(HTTP message){
+		
+		System.out.println(message.getMethod() + " " + message.getHttpFile() + " " + message.getHttpVersion() + CRLF);
+		
+		for(String key: message.getHeaderFields().keySet()){
+			System.out.println(key + ": " + message.getHeaderFields().get(key));
+		}
+		
+		
 	}
 
 	
