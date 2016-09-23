@@ -16,15 +16,32 @@ public class WebServer {
 	private ServerSocket socket;
 	private int port;
 	private int showDirectories;
+	private String protectedDir;
 	
-	public WebServer(int port, int showDirectories){
+	public WebServer(int port, int showDirectories, String protectedDir){
 		
 		this.port = port;
 		this.showDirectories = showDirectories;
+		this.protectedDir = protectedDir;
 		
 	}
 
 
+	public boolean isProtectedDir(String fileName){
+		
+		String[] splittedPath = fileName.split("/");
+		
+		for(String s : splittedPath){
+			if(s.equals(this.protectedDir))
+				return true;
+		}
+		
+		
+		return false;
+	}
+	
+	
+	
 	public void startAcceptingClients() {
 		try {
 			socket = new ServerSocket(this.port);
@@ -57,5 +74,9 @@ public class WebServer {
 	
 	public int getShowDirectories() {
 		return showDirectories;
+	}
+	
+	public String getProtectedDir() {
+		return protectedDir;
 	}
 }

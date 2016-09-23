@@ -17,10 +17,11 @@ public class Main {
 			
 			int port = Integer.parseInt(p.getProperty("port"));
 			int showDirs = Integer.parseInt(p.getProperty("showOptions"));
+			String protectedDir = p.getProperty("protectedDir");
 			
 			System.out.println(showDirs);
 			
-			WebServer wb = new WebServer(port, showDirs);
+			WebServer wb = new WebServer(port, showDirs, protectedDir);
 			wb.startAcceptingClients();
 			
 		} catch (FileNotFoundException e) {

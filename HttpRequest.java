@@ -27,7 +27,7 @@ public class HttpRequest implements Runnable{
 
 	private static int sendBytes(FileInputStream fis, OutputStream os) throws Exception {
 		// Construir um buffer de 1K para comportar os bytes no caminho para o socket.
-	byte[] buffer = new byte[1024];
+		byte[] buffer = new byte[1024];
 		int bytes = 0;
 		// Copiar o arquivo requisitado dentro da cadeia de saida do socket.
 		int bytesSent = 0;
@@ -38,6 +38,18 @@ public class HttpRequest implements Runnable{
 
 		return bytesSent;
 	}
+	
+	private static int sendChars(String fis, OutputStream os) throws Exception {
+		// Construir um buffer de 1K para comportar os bytes no caminho para o socket.
+		int bytes = 0;
+		// Copiar o arquivo requisitado dentro da cadeia de saida do socket.
+		int bytesSent = 0;
+		os.write(fis.getBytes(), 0, bytes);
+		bytes = fis.length();
+
+		return bytesSent;
+	}
+	
 
 	private static void writeHeader(String statusLine, String contentTypeLine, DataOutputStream os) throws Exception {
 		// Enviar a linha de status.
@@ -94,10 +106,15 @@ public class HttpRequest implements Runnable{
 		// Acrescente um "." de modo que a requisição do arquivo esteja dentro do diretório atual.
 		fileName = "." + fileName;
 
+		if(wb.isProtectedDir(fileName)){
+			writeProtectedDirectory(os);
+		}
+		
 		// Instancia variaveis do arquivo
 		File file = new File(fileName);
 		FileInputStream fis = null;
 
+		
 		// Instancia variaveis de resposta
 		String statusLine = null;
 		String contentTypeLine = null;
@@ -106,64 +123,34 @@ public class HttpRequest implements Runnable{
 		String[] parts = requestLine.split(" ");
 		switch(parts[0]){
 			case "GET":
-				// Ve se o arquivo ou diretório existe
-				if(file.exists()){
-					if(file.isFile()){ // Se for arquivo
-
-						sendServerFile(os, fileName, "GET");
-
-					} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
-
-						writeUnauthorizedDirectory(os, "GET");
-
-					} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
-
-						File indexFile = new File("index.html");
-						if(!indexFile.exists()){
-							writeUnauthorizedDirectory(os, "GET");
-						} else {
-							sendServerFile(os, "index.html", "GET");
-						}
-
-					} else if(file.isDirectory()){ // Se for diretório
-
-						writeDirectory(os, file, fileName, "GET");
-
-					}
-				} else {
-
-					fileNotFound(os, "GET");
-
-				}
-				break;
 			case "HEAD":
 				// Ve se o arquivo ou diretório existe
 				if(file.exists()){
 					if(file.isFile()){ // Se for arquivo
 
-						sendServerFile(os, fileName, "HEAD");
+						sendServerFile(os, fileName, parts[0]);
 
 					} else if(wb.getShowDirectories() == 1) { // Não mostra os diretórios, só os arquivos
 
-						writeUnauthorizedDirectory(os, "HEAD");
+						writeUnauthorizedDirectory(os, parts[0]);
 
 					} else if(wb.getShowDirectories() == 2) { // Mostra um index padrão caso ele exista
 
 						File indexFile = new File("index.html");
 						if(!indexFile.exists()){
-							writeUnauthorizedDirectory(os, "HEAD");
+							writeUnauthorizedDirectory(os, parts[0]);
 						} else {
-							sendServerFile(os, "index.html", "HEAD");
+							sendServerFile(os, "index.html", parts[0]);
 						}
 
 					} else if(file.isDirectory()){ // Se for diretório
 
-						writeDirectory(os, file, fileName, "HEAD");
+						writeDirectory(os, file, fileName, parts[0]);
 
 					}
 				} else {
 
-					fileNotFound(os, "HEAD");
+					fileNotFound(os, parts[0]);
 
 				}
 				break;
@@ -241,6 +228,22 @@ public class HttpRequest implements Runnable{
 		entityBody = entityBody + payload.toString();
 	
 	}
+	
+	private void writeProtectedDirectory(DataOutputStream os) throws Exception{
+		String statusLine;
+		String authenticationLine = "WWW-Authenticate: Basic realm=\"User Visible Realm\"" + CRLF;
+		String entityBody;
+		
+		statusLine = "HTTP/1.0 401"+CRLF;
+
+		writeHeader(statusLine, authenticationLine, os);
+
+		// Escreve corpo da mensagem
+		sendChars("sendBytes", os);
+		
+	}
+	
+	
 	private void sendServerFile(DataOutputStream os, String fileName, String MIME)
 			throws FileNotFoundException, Exception, IOException {
 		String statusLine;
