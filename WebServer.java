@@ -10,6 +10,7 @@ Atividade 2 - Parte A
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Base64;
 
 public class WebServer {
 	
@@ -17,13 +18,15 @@ public class WebServer {
 	private int port;
 	private int showDirectories;
 	private String protectedDir;
+	private String user;
+	private String pass;
 	
-	public WebServer(int port, int showDirectories, String protectedDir){
-		
+	public WebServer(int port, int showDirectories, String protectedDir, String user, String pass){
 		this.port = port;
 		this.showDirectories = showDirectories;
 		this.protectedDir = protectedDir;
-		
+		this.user = user;
+		this.pass = pass;
 	}
 
 
@@ -70,6 +73,20 @@ public class WebServer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean loginClient(HTTP http){
+		String auth = http.getHeaderValue("Authorization");
+		String key = auth.split("\\s")[2];
+		
+		String decoded = new String(Base64.getDecoder().decode(key));
+		
+		String[] login = decoded.split(":");
+		
+		if(login[0].equals(this.user) && login[1].equals(this.pass))
+			return true;
+		
+		return false;
 	}
 	
 	public int getShowDirectories() {

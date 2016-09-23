@@ -14,6 +14,8 @@ public class HttpRequest implements Runnable{
 	final static String CRLF = "\r\n";
 	Socket socket;
 	private WebServer wb;
+	public static boolean waitingForLogin;
+	
 
 	// Construtor
 	public HttpRequest(Socket socket, WebServer wb) throws Exception {
@@ -108,6 +110,21 @@ public class HttpRequest implements Runnable{
 		String fileName = message.getHttpFile();
 		String method = message.getMethod();
 		
+		if(waitingForLogin){
+			waitingForLogin = false;
+			
+			boolean canLogin = wb.loginClient(message);
+			
+			if(!canLogin) {
+				writeProtectedDirectory(os);
+				return;
+			}
+				
+		} else if(wb.isProtectedDir(fileName)){
+			writeProtectedDirectory(os);
+			return;
+		}
+			
 		File file = new File(fileName);
 		FileInputStream fis = null;
 
@@ -154,7 +171,7 @@ public class HttpRequest implements Runnable{
 		// Feche as cadeias e socket.
 		os.close();
 		br.close();
-		socket.close();
+		//socket.close();
 
 	}
 	
@@ -207,6 +224,8 @@ public class HttpRequest implements Runnable{
 
 		// Escreve corpo da mensagem
 		sendChars("sendBytes", os);
+		
+		waitingForLogin = true;
 		
 	}
 	

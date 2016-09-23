@@ -68,5 +68,8 @@ public class HTTP {
 		return httpVersion;
 	}
 	
+	public String getHeaderValue(String key){
+		return this.headerFields.get(key);
+	}
 	
 }
