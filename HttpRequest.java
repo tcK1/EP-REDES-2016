@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.logging.*;
 
 public class HttpRequest implements Runnable{
 
@@ -15,7 +16,7 @@ public class HttpRequest implements Runnable{
 	Socket socket;
 	private WebServer wb;
 	public static boolean waitingForLogin;
-	
+
 
 	// Construtor
 	public HttpRequest(Socket socket, WebServer wb) throws Exception {
@@ -47,7 +48,7 @@ public class HttpRequest implements Runnable{
 
 		return bytesSent;
 	}
-	
+
 	private static int sendChars(String fis, OutputStream os) throws Exception {
 		// Construir um buffer de 1K para comportar os bytes no caminho para o socket.
 		int bytes = 0;
@@ -58,7 +59,7 @@ public class HttpRequest implements Runnable{
 
 		return bytesSent;
 	}
-	
+
 
 	private static void writeHeader(String statusLine, String contentTypeLine, DataOutputStream os) throws Exception {
 		// Enviar a linha de status.
@@ -98,6 +99,8 @@ public class HttpRequest implements Runnable{
 
 	private void processRequest() throws Exception {
 
+		long startTime = System.nanoTime();
+
 		// Obter uma referência para os trechos de entrada e saída do socket.
 		InputStream is = socket.getInputStream();
 		DataOutputStream os = new DataOutputStream(socket.getOutputStream());
@@ -106,25 +109,25 @@ public class HttpRequest implements Runnable{
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
 		HTTP message = HTTPParser.bufferToHTTP(br);
-		
+
 		String fileName = message.getHttpFile();
 		String method = message.getMethod();
-		
+
 		if(waitingForLogin){
 			waitingForLogin = false;
-			
+
 			boolean canLogin = wb.loginClient(message);
-			
+
 			if(!canLogin) {
 				writeProtectedDirectory(os);
 				return;
 			}
-				
+
 		} else if(wb.isProtectedDir(fileName)){
 			writeProtectedDirectory(os);
 			return;
 		}
-			
+
 		File file = new File(fileName);
 		FileInputStream fis = null;
 
@@ -165,8 +168,18 @@ public class HttpRequest implements Runnable{
 				writeResponsePost(os, br, fileName);
 				break;
 		}
-		
+
+		long endTime = System.nanoTime();
+		double difference = (endTime - startTime)/1e6;
+
 		printHTTP(message);
+
+		wb.logger.info("\n" +
+						"[CLIENT] " + socket.toString() + "\n" +  // Ip e porta do client
+						"[METHOD] " + method + "\n" + // Método usado na requisição
+						"[FILE] " + fileName + "\n" + // Arquivo ou diretório acessado
+						"[DURATION] " + difference + "\n" + // Tempo de processamento
+						"[RESPONSE SIZE] " + os.size()); // Tamanho da resposta
 
 		// Feche as cadeias e socket.
 		os.close();
@@ -174,30 +187,30 @@ public class HttpRequest implements Runnable{
 		//socket.close();
 
 	}
-	
+
 	private static void printHTTP(HTTP message){
-		
+
 		System.out.println(message.getMethod() + " " + message.getHttpFile() + " " + message.getHttpVersion() + CRLF);
-		
+
 		for(String key: message.getHeaderFields().keySet()){
 			System.out.println(key + ": " + message.getHeaderFields().get(key));
 		}
-		
-		
+
+
 	}
 
-	
+
 	private void writeResponsePost(DataOutputStream os, BufferedReader br, String fileName) throws Exception {
 		String statusLine;
 		String contentTypeLine;
 		String entityBody;
-		
+
 		statusLine = "HTTP/1.0 200";
 		contentTypeLine = "Content-type: " + contentType( fileName ) + CRLF;
 		entityBody = "<HTML>" +
 					"<HEAD><TITLE>POST DATA</TITLE></HEAD>" +
 					"<BODY>";
-					
+
 		String headerLine = null;
 		while((headerLine = br.readLine()).length() != 0){
 			entityBody = entityBody + headerLine;
@@ -208,28 +221,28 @@ public class HttpRequest implements Runnable{
 		while(br.ready()){
 			payload.append((char) br.read());
 		}
-		
+
 		entityBody = entityBody + payload.toString();
-	
+
 	}
-	
+
 	private void writeProtectedDirectory(DataOutputStream os) throws Exception{
 		String statusLine;
 		String authenticationLine = "WWW-Authenticate: Basic realm=\"User Visible Realm\"" + CRLF;
 		String entityBody;
-		
+
 		statusLine = "HTTP/1.0 401"+CRLF;
 
 		writeHeader(statusLine, authenticationLine, os);
 
 		// Escreve corpo da mensagem
 		sendChars("sendBytes", os);
-		
+
 		waitingForLogin = true;
-		
+
 	}
-	
-	
+
+
 	private void sendServerFile(DataOutputStream os, String fileName, String MIME)
 			throws FileNotFoundException, Exception, IOException {
 		String statusLine;
@@ -353,7 +366,7 @@ public class HttpRequest implements Runnable{
 			case "HEAD":
 				statusLine = "HTTP/1.0 401";
 				contentTypeLine = "Content-type: text/html" + CRLF;
-				
+
 				writeHeader(statusLine, contentTypeLine, os);
 
 				break;

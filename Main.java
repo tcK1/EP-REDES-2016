@@ -9,26 +9,28 @@ import java.util.Properties;
 public class Main {
 
 	public static void main(String[] args) {
-		
+
 		try {
 			Properties p = new Properties();
 			InputStream is = new FileInputStream("server.config");
 			p.load(is);
-			
+
 			int port = Integer.parseInt(p.getProperty("port"));
 			int showDirs = Integer.parseInt(p.getProperty("showOptions"));
 			String protectedDir = p.getProperty("protectedDir");
 			String user = p.getProperty("user");
 			String pass = p.getProperty("pass");
-			
+
 			WebServer wb = new WebServer(port, showDirs, protectedDir, user, pass);
 			wb.startAcceptingClients();
-			
+
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
