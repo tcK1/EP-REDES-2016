@@ -165,7 +165,7 @@ public class HttpRequest implements Runnable{
 				}
 				break;
 			case "POST":
-				writeResponsePost(os, br, fileName);
+				writeResponsePost(os, br, fileName, message);
 				break;
 		}
 
@@ -200,7 +200,7 @@ public class HttpRequest implements Runnable{
 	}
 
 
-	private void writeResponsePost(DataOutputStream os, BufferedReader br, String fileName) throws Exception {
+	private void writeResponsePost(DataOutputStream os, BufferedReader br, String fileName, HTTP message) throws Exception {
 		String statusLine;
 		String contentTypeLine;
 		String entityBody;
@@ -211,9 +211,10 @@ public class HttpRequest implements Runnable{
 					"<HEAD><TITLE>POST DATA</TITLE></HEAD>" +
 					"<BODY>";
 
-		String headerLine = null;
-		while((headerLine = br.readLine()).length() != 0){
-			entityBody = entityBody + headerLine;
+		entityBody = entityBody + message.getMethod() + " " + message.getHttpFile() + " " + message.getHttpVersion();
+
+		for(String key: message.getHeaderFields().keySet()){
+			entityBody = entityBody + key + ": " + message.getHeaderFields().get(key);
 		}
 
 		// Dados do POST
@@ -223,6 +224,12 @@ public class HttpRequest implements Runnable{
 		}
 
 		entityBody = entityBody + payload.toString();
+
+		entityBody = entityBody + "</BODY></HTML>";
+		writeHeader(statusLine, contentTypeLine, os);
+
+		// Escreve o corpo da mesagem.
+		os.writeBytes(entityBody);
 
 	}
 
