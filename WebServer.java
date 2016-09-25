@@ -1,12 +1,3 @@
-
-
-/*
-Kaic N. Bastidas - 8516048
-Bruno I. Murozaki - 8516476
-
-Atividade 2 - Parte A
-*/
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -59,6 +50,9 @@ public class WebServer {
 
 	public void startAcceptingClients() {
 		try {
+			
+			System.out.println("Servidor aberto! Escutando requisições.");
+			
 			socket = new ServerSocket(this.port);
 
 			while (true)  {
@@ -73,16 +67,13 @@ public class WebServer {
 					//Iniciar o thread.
 					thread.start();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

@@ -108,11 +108,13 @@ public class HttpRequest implements Runnable{
 		// Ajustar os filtros do trecho de entrada.
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
+		// Parser da mensagem
 		HTTP message = HTTPParser.bufferToHTTP(br);
 
-		String fileName = message.getHttpFile();
-		String method = message.getMethod();
+		String fileName = message.getHttpFile(); // Caminho solicitado
+		String method = message.getMethod(); // Método usado
 
+		// Verifica se é o reposiório privado
 		if(waitingForLogin){
 			waitingForLogin = false;
 
@@ -128,11 +130,13 @@ public class HttpRequest implements Runnable{
 			return;
 		}
 
+		// Instancia o arquivo ou diretório que foi requisitado
 		File file = new File(fileName);
 		FileInputStream fis = null;
 
+		// Dependendo do método, faz ações diferentes
 		switch(method){
-			case "GET":
+			case "GET": // Mesma execução que o HEAD só mudam os parâmetros
 			case "HEAD":
 				// Ve se o arquivo ou diretório existe
 				if(file.exists()){
@@ -158,6 +162,7 @@ public class HttpRequest implements Runnable{
 						writeDirectory(os, file, fileName, method);
 
 					}
+				// Caso o arquivo ou diretório não exista
 				} else {
 
 					fileNotFound(os, method);
@@ -174,6 +179,7 @@ public class HttpRequest implements Runnable{
 
 		printHTTP(message);
 
+		// Escreve o log
 		wb.logger.info("\n" +
 						"[CLIENT] " + socket.toString() + "\n" +  // Ip e porta do client
 						"[METHOD] " + method + "\n" + // Método usado na requisição
@@ -188,18 +194,20 @@ public class HttpRequest implements Runnable{
 
 	}
 
+	// Printa os dados da requisição
 	private static void printHTTP(HTTP message){
 
-		System.out.println(message.getMethod() + " " + message.getHttpFile() + " " + message.getHttpVersion() + CRLF);
+		System.out.println(message.getMethod() + " " + message.getHttpFile() + " " + message.getHttpVersion());
 
 		for(String key: message.getHeaderFields().keySet()){
 			System.out.println(key + ": " + message.getHeaderFields().get(key));
 		}
 
+		System.out.println(CRLF);
 
 	}
 
-
+	// Escreve o POST
 	private void writeResponsePost(DataOutputStream os, BufferedReader br, String fileName, HTTP message) throws Exception {
 		String statusLine;
 		String contentTypeLine;
@@ -233,6 +241,7 @@ public class HttpRequest implements Runnable{
 
 	}
 
+	// Escreve o diretório protegido
 	private void writeProtectedDirectory(DataOutputStream os) throws Exception{
 		String statusLine;
 		String authenticationLine = "WWW-Authenticate: Basic realm=\"User Visible Realm\"" + CRLF;
@@ -249,7 +258,7 @@ public class HttpRequest implements Runnable{
 
 	}
 
-
+	// Escreve o arquivo
 	private void sendServerFile(DataOutputStream os, String fileName, String MIME)
 			throws FileNotFoundException, Exception, IOException {
 		String statusLine;
@@ -280,6 +289,7 @@ public class HttpRequest implements Runnable{
 		}
 	}
 
+	// Escreve arquivo não encontrado
 	private void fileNotFound(DataOutputStream os, String MIME) throws Exception {
 		String statusLine;
 		String contentTypeLine;
@@ -307,6 +317,7 @@ public class HttpRequest implements Runnable{
 		}
 	}
 
+	// Escreve o diretório
 	private void writeDirectory(DataOutputStream os, File directory, String path, String MIME) throws Exception {
 		String statusLine;
 		String contentTypeLine;
@@ -352,6 +363,7 @@ public class HttpRequest implements Runnable{
 		}
 	}
 
+	// Escreve diretório não autorizado
 	private void writeUnauthorizedDirectory(DataOutputStream os, String MIME)
 			throws Exception, IOException {
 		String statusLine;

@@ -1,10 +1,13 @@
+/*
+Kaic N. Bastidas - 8516048
+Bruno I. Murozaki - 8516476
+*/
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
-
 
 public class Main {
 
@@ -21,14 +24,14 @@ public class Main {
 			String user = p.getProperty("user");
 			String pass = p.getProperty("pass");
 
+			System.out.println("Abrindo o servidor...");
+			
 			WebServer wb = new WebServer(port, showDirs, protectedDir, user, pass);
 			wb.startAcceptingClients();
-
+			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
